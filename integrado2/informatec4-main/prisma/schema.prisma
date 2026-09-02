@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  nombre        String
+  apellido      String
+  curso         String?
+  division      String?
+  email         String    @unique
+  password      String
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+  EDITOR
+}
+
+model Post {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  coverImage    String
+  description   String    @db.Text
+  content       String    @db.LongText
+  published     Boolean   @default(false)
+  authorId      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  pageLayout    String    @default("default") // 'default', 'wide', 'sidebar', etc.
+  pageTheme     String    @default("light")   // 'light', 'dark', 'colorful', etc.
+  
+  author        User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  categories    CategoryOnPost[]
+  comments      Comment[]
+  likes         Like[]
+
+  @@map("posts")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  
+  posts       CategoryOnPost[]
+
+  @@map("categories")
+}
+
+model CategoryOnPost {
+  postId      String
+  categoryId  String
+  
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@map("category_post")
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  content     String    @db.Text
+  postId      String
+  userId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Like {
+  id        String    @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime  @default(now())
+  
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId]) 
+  @@map("likes")
+}
